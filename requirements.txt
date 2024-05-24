@@ -1,0 +1,5 @@
+numpy
+torch
+stable-baselines3
+tensorflow-gpu
+shimmy
