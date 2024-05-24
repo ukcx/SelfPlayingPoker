@@ -2,7 +2,6 @@ class Card:
     def __init__(self, rank, suit):
         self.rank = rank
         self.suit = suit
-
     def __repr__(self):
         suits = {
             "S": "♠",
@@ -21,13 +20,10 @@ class Card:
         else:
             rank = str(self.rank)
         return f"{rank}{suits[self.suit]}"
-
     def __eq__(self, other):
         return self.rank == other.rank and self.suit == other.suit
-
     def __lt__(self, other):
         return self.rank < other.rank
-
     def __hash__(self):
         return hash((self.rank, self.suit))
 

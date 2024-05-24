@@ -14,6 +14,7 @@ class PokerEnv(gym.Env):
         self.num_players = num_players
         self.small_blind = small_blind
         self.buyin = buyin
+        self.startingPlayerIndex = 0
         self.players = [PokerPlayer(i, self.buyin) for i in range(self.num_players)]
         for player in self.players:
             player.budget = self.buyin
@@ -52,7 +53,7 @@ class PokerEnv(gym.Env):
             player.resetValues()
 
     def shiftPlayers(self):
-        return
+        self.startingPlayerIndex = (self.startingPlayerIndex + 1) % len(self.players)
 
     def removePlayersWithNoMoney(self):
         # Remove players with no money from the game
@@ -73,10 +74,10 @@ class PokerEnv(gym.Env):
     def reset(self):
         # self.removePlayersWithNoMoney()
         self.resetPlayers()
-        # self.shiftPlayers()
+        self.shiftPlayers()
         if self.areAllGamesOver():
             return self._get_state()
-        self.round = PokerGame(self.players, self.small_blind)
+        self.round = PokerGame(self.players, self.small_blind, self.startingPlayerIndex)
         self.round.startRound()
         return self._get_state()
     

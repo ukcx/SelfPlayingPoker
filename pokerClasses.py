@@ -6,12 +6,54 @@ class PokerHand:
         self.cards.sort()
         self.cards.reverse()
         self.rank = self.getRank()
+        self.tieBreakerScore = self.getTieBreakerScore()
     def __repr__(self):
         return str(self.cards)
     def __len__(self):
         return len(self.cards)
     def __getitem__(self, position):
         return self.cards[position]
+    def getTieBreakerScore(self):
+        if self.isRoyalFlush():
+            return 1
+        elif self.isStraightFlush():
+            return self.cards[0].rank
+        elif self.isFourOfAKind():
+            if self.cards[0].rank == self.cards[3].rank:
+                return self.cards[0].rank
+            return self.cards[1].rank
+        elif self.isFullHouse():
+            if self.cards[0].rank == self.cards[2].rank:
+                return self.cards[0].rank * 20 + self.cards[3].rank
+            return self.cards[2].rank * 20 + self.cards[0].rank            
+        elif self.isFlush():
+            return self.cards[0].rank * 20 ** 4 + self.cards[1].rank * 20 ** 3 + self.cards[2].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[4].rank
+        elif self.isStraight():
+            return self.cards[0].rank
+        elif self.isThreeOfAKind():
+            if self.cards[0].rank == self.cards[2].rank:
+                return self.cards[0].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[4].rank
+            elif self.cards[1].rank == self.cards[3].rank:
+                return self.cards[1].rank * 20 ** 2 + self.cards[0].rank * 20 + self.cards[4].rank
+            return self.cards[2].rank * 20 ** 2 + self.cards[0].rank * 20 + self.cards[1].rank
+        elif self.isTwoPair():
+            if self.cards[0].rank == self.cards[1].rank and self.cards[2].rank == self.cards[3].rank:
+                return self.cards[0].rank * 20 ** 2 + self.cards[2].rank * 20 + self.cards[4].rank
+            elif self.cards[0].rank == self.cards[1].rank and self.cards[3].rank == self.cards[4].rank:
+                return self.cards[0].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[2].rank
+            elif self.cards[1].rank == self.cards[2].rank and self.cards[3].rank == self.cards[4].rank:
+                return self.cards[1].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[0].rank
+        elif self.isPair():
+            if self.cards[0].rank == self.cards[1].rank:
+                return self.cards[0].rank * 20 ** 3 + self.cards[2].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[4].rank
+            elif self.cards[1].rank == self.cards[2].rank:
+                return self.cards[1].rank * 20 ** 3 + self.cards[0].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[4].rank
+            elif self.cards[2].rank == self.cards[3].rank:
+                return self.cards[2].rank * 20 ** 3 + self.cards[0].rank * 20 ** 2 + self.cards[1].rank * 20 + self.cards[4].rank
+            elif self.cards[3].rank == self.cards[4].rank:
+                return self.cards[3].rank * 20 ** 3 + self.cards[0].rank * 20 ** 2 + self.cards[1].rank * 20 + self.cards[2].rank
+        else:
+            return self.cards[0].rank * 20 ** 4 + self.cards[1].rank * 20 ** 3 + self.cards[2].rank * 20 ** 2 + self.cards[3].rank * 20 + self.cards[4].rank
     def getRank(self):
         if self.isRoyalFlush():
             return 10
@@ -103,7 +145,7 @@ print(Action.FOLD == 0)  # Now this will print True
 
 
 class PokerGame:
-    def __init__(self, players, smallBlind):
+    def __init__(self, players, smallBlind, startingPlayerIndex=0):
         self.deck = CardDeck()
         self.deck.shuffleCards()
         self.flop = []
@@ -112,7 +154,7 @@ class PokerGame:
         self.round = 0
         self.roundBet = 0
         self.pot = 0
-        self.playersTurn = 0
+        self.playersTurn = startingPlayerIndex
         self.playersLeft = len(self.players)
         self.playersLeftToPlayInThisRound = len(self.players)
         print("num players", len(self.players))
@@ -120,8 +162,6 @@ class PokerGame:
             if player.getBudget() == 0:
                 print( "herer")
                 player.folded = True
-        self.nonFoldedPlayers = [player for player in self.players if player.folded == False]
-        print(len(self.nonFoldedPlayers))
     
     def startRound(self):
         for player in self.players:
@@ -145,7 +185,6 @@ class PokerGame:
             self.playerTakeAction(self.players[self.playersTurn], Action.ALLIN)
         else:
             self.playerTakeAction(self.players[self.playersTurn], Action.RAISE, self.smallBlind)
-        
         while(self.players[self.playersTurn].folded):
             self.playerTakeAction(self.players[self.playersTurn], Action.FOLD)
         if self.players[self.playersTurn].getBudget() <= self.smallBlind * 2:
@@ -258,23 +297,29 @@ class PokerGame:
             return winner
         roundBets = [player.getBettedAmount() for player in self.players]
         while max(roundBets) != 0:
-            winner = nonFoldedPlayers[0]
-            winnerBestHand = self.getBestHand(winner)
-            for player in nonFoldedPlayers:
+            winners = [nonFoldedPlayers[0]]
+            winnerBestHand = self.getBestHand(winners[0])
+            for index in range(1, len(nonFoldedPlayers)):
+                player = nonFoldedPlayers[index]
                 playerBestHand = self.getBestHand(player)
-                if playerBestHand.rank > winnerBestHand.rank:
-                    winner = player
+                if playerBestHand.rank > winnerBestHand.rank or (playerBestHand.rank == winnerBestHand.rank and playerBestHand.tieBreakerScore > winnerBestHand.tieBreakerScore):
+                    winners = [player]
                     winnerBestHand = playerBestHand
-            winnerBet = winner.getBettedAmount()
-            if winnerBet == max(roundBets):
-                winner.budget += self.pot
+                elif playerBestHand.rank == winnerBestHand.rank and playerBestHand.tieBreakerScore == winnerBestHand.tieBreakerScore:
+                    winners.append(player)
+            winnerBet = min(winner.getBettedAmount() for winner in winners)
+            if len(winners) == 1 and winnerBet == max(roundBets):
+                winners[0].budget += self.pot
                 break
             else:
+                tempPot = 0
                 for player in self.players:
                     amountWonOverThisPlayer = min(player.getBettedAmount(), winnerBet)
-                    winner.budget += amountWonOverThisPlayer
+                    tempPot += amountWonOverThisPlayer
                     player.bettedAmount -= amountWonOverThisPlayer
-                    self.pot -= amountWonOverThisPlayer
+                for winner in winners:
+                    winner.budget += tempPot / len(winners)
+                self.pot -= tempPot
             nonFoldedPlayers = [player for player in self.players if player.bettedAmount > 0]
             roundBets = [player.getBettedAmount() for player in self.players]
         return winner
@@ -284,7 +329,7 @@ class PokerGame:
         bestHand = PokerHand(self.flop)
         for comb in itertools.combinations(player.hand + self.flop, 5):
             comb = list(comb)
-            if PokerHand(comb).rank > bestHand.rank:
+            if PokerHand(comb).rank > bestHand.rank or (PokerHand(comb).rank == bestHand.rank and PokerHand(comb).getTieBreakerScore() > bestHand.getTieBreakerScore()):
                 bestHand = PokerHand(comb)
         return bestHand
     

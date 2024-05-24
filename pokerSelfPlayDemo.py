@@ -7,26 +7,28 @@ class PokerUntilWinner:
         self.buyin = buyin
         for player in self.players:
             player.budget = self.buyin
+        self.startingPlayerIndex = 0
     
     def playUntilWinner(self):
         while self.areAllGamesOver() == False:
             print("New game started!")
-            self.playRound()
-            self.removePlayersWithNoMoney()
             self.resetPlayers()
             self.shiftPlayers()
+            self.playRound()
+            # self.removePlayersWithNoMoney()
             print("One game ended!")
-        print("Game over! " + str(self.players[0].id) + " won!")
+        print("Game over! " + str([player for player in self.players if player.budget > 0][0].id) + " won!")
 
     def resetPlayers(self):
         for player in self.players:
             player.resetValues()
 
     def shiftPlayers(self):
-        self.players.append(self.players.pop(0))
+        self.startingPlayerIndex = (self.startingPlayerIndex + 1) % len(self.players)
+        # self.players.append(self.players.pop(0))
     
     def playRound(self):
-        pokerGame = PokerGame(self.players, self.smallBlind)
+        pokerGame = PokerGame(self.players, self.smallBlind, self.startingPlayerIndex)
         while pokerGame.isGameOver() == False:
             print("###################")
             print("New round started! " + str(pokerGame.round))
@@ -57,16 +59,16 @@ class PokerUntilWinner:
         for player in self.players:
             print("player with id:" , player.id, "has", player.budget, player.hand)
 
-    def removePlayersWithNoMoney(self):
-        players = []
-        for player in self.players:
-            if player.budget > 0:
-                players.append(player)
-        self.players = players
-        print(self.players)
+    # def removePlayersWithNoMoney(self):
+    #     players = []
+    #     for player in self.players:
+    #         if player.budget > 0:
+    #             players.append(player)
+    #     self.players = players
+    #     print(self.players)
     
     def areAllGamesOver(self):
-        return len(self.players) == 1
+        return len([player for player in self.players if player.budget > 0]) == 1
 
 
 player1 = PokerPlayer(1)
